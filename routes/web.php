@@ -18,6 +18,7 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('/feedback', 'feedbacklogs')->name('feedlogs');
     Volt::route('/leaverequest', 'leaverequest')->name('leaverequests');
     Volt::route('/staffdirectory', 'staffdirectory')->name('staffdirectory');
+    Volt::route('/profile/{emp}', 'employeeprofile')->name('emp.profile');
 
 
     Route::redirect('settings', 'settings/profile');

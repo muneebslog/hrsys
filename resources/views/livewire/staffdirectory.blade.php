@@ -317,10 +317,11 @@ new class extends Component {
                                 </div>
                             @endif
                         </div>
-                        <button
-                            class="w-full mt-6 bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold text-xs transition">
+                        <flux:button href="{{ route('emp.profile', ['emp' => $employee->id]) }}" wire:navigate
+                            class="w-full mt-6 bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold text-xs transition"
+                            > 
                             View Full Profile
-                        </button>
+                        </flux:button>
                     </div>
                 @empty
                     <div class="col-span-full text-center py-12">

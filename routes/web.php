@@ -13,6 +13,13 @@ Route::view('dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
+    
+    Volt::route('/document/vault', 'documentvault')->name('docs');
+    Volt::route('/feedback', 'feedbacklogs')->name('feedlogs');
+    Volt::route('/leaverequest', 'leaverequest')->name('leaverequests');
+    Volt::route('/staffdirectory', 'staffdirectory')->name('staffdirectory');
+
+
     Route::redirect('settings', 'settings/profile');
 
     Volt::route('settings/profile', 'settings.profile')->name('profile.edit');

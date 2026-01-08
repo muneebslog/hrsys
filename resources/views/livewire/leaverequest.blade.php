@@ -1,9 +1,123 @@
 <?php
 
 use Livewire\Volt\Component;
+use App\Models\LeaveRequest;
+use App\Models\Employee;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 new class extends Component {
-    //
+    public $leaveRequests;
+    public $filterStatus = 'all';
+    public $filterDate = '';
+    
+    // Statistics
+    public $pendingCount = 0;
+    public $onLeaveToday = 0;
+    public $availableStaff = 0;
+
+    public function mount()
+    {
+        $this->filterDate = Carbon::today()->format('Y-m-d');
+        $this->loadData();
+    }
+
+    public function loadData()
+    {
+        // Load leave requests with relationships
+        $query = LeaveRequest::with(['employee.user', 'employee.department', 'leaveType', 'approver']);
+
+        // Apply status filter
+        if ($this->filterStatus !== 'all') {
+            $query->where('status', $this->filterStatus);
+        }
+
+        // Apply date filter if set
+        if ($this->filterDate) {
+            $query->where(function($q) {
+                $q->whereDate('start_date', '<=', $this->filterDate)
+                  ->whereDate('end_date', '>=', $this->filterDate);
+            });
+        }
+
+        $this->leaveRequests = $query->orderBy('created_at', 'desc')->get();
+
+        // Calculate statistics
+        $this->calculateStatistics();
+    }
+
+    public function calculateStatistics()
+    {
+        $this->pendingCount = LeaveRequest::where('status', 'pending')->count();
+        
+        // Count employees on leave today
+        $today = Carbon::today();
+        $this->onLeaveToday = LeaveRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->distinct('employee_id')
+            ->count('employee_id');
+        
+        // Calculate available staff (total employees - on leave today)
+        $totalEmployees = Employee::count();
+        $this->availableStaff = $totalEmployees - $this->onLeaveToday;
+    }
+
+    public function setFilter($status)
+    {
+        $this->filterStatus = $status;
+        $this->loadData();
+    }
+
+    public function updatedFilterDate()
+    {
+        $this->loadData();
+    }
+
+    public function approveLeave($leaveId)
+    {
+        try {
+            $leave = LeaveRequest::findOrFail($leaveId);
+            
+            $leave->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+            ]);
+
+            session()->flash('message', 'Leave request approved successfully.');
+            $this->loadData();
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to approve leave: ' . $e->getMessage());
+        }
+    }
+
+    public function rejectLeave($leaveId)
+    {
+        try {
+            $leave = LeaveRequest::findOrFail($leaveId);
+            
+            $leave->update([
+                'status' => 'rejected',
+                'approved_by' => auth()->id(),
+            ]);
+
+            session()->flash('message', 'Leave request rejected.');
+            $this->loadData();
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to reject leave: ' . $e->getMessage());
+        }
+    }
+
+    public function getDuration($startDate, $endDate)
+    {
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
+        $days = $start->diffInDays($end) + 1;
+        
+        return $days . ' ' . ($days > 1 ? 'Days' : 'Day');
+    }
 }; ?>
 
 <div>
@@ -19,10 +133,7 @@ new class extends Component {
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Submit Request
-                    </button>
+                    
                 </div>
             </div>
         </div>
@@ -37,7 +148,7 @@ new class extends Component {
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
-                    <p class="text-2xl font-black dark:text-white">08 Requests</p>
+                    <p class="text-2xl font-black dark:text-white">{{ str_pad($pendingCount, 2, '0', STR_PAD_LEFT) }} Requests</p>
                 </div>
             </div>
             <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm border-l-4 border-l-blue-600">
@@ -46,7 +157,7 @@ new class extends Component {
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">On Leave Today</p>
-                    <p class="text-2xl font-black dark:text-white">14 Staff</p>
+                    <p class="text-2xl font-black dark:text-white">{{ $onLeaveToday }} Staff</p>
                 </div>
             </div>
             <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm">
@@ -55,19 +166,20 @@ new class extends Component {
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Staff</p>
-                    <p class="text-2xl font-black dark:text-white">110 Present</p>
+                    <p class="text-2xl font-black dark:text-white">{{ $availableStaff }} Present</p>
                 </div>
             </div>
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 mb-6">
             <div class="flex-1 flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                <button class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold whitespace-nowrap">All Requests</button>
-                <button class="px-5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition whitespace-nowrap">Pending</button>
-                <button class="px-5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition whitespace-nowrap">Approved</button>
+                <button wire:click="setFilter('all')" class="px-5 py-2 {{ $filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">All Requests</button>
+                <button wire:click="setFilter('pending')" class="px-5 py-2 {{ $filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Pending</button>
+                <button wire:click="setFilter('approved')" class="px-5 py-2 {{ $filterStatus === 'approved' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Approved</button>
+                <button wire:click="setFilter('rejected')" class="px-5 py-2 {{ $filterStatus === 'rejected' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Rejected</button>
             </div>
             <div class="flex gap-2">
-                <input type="date" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                <input wire:model.live="filterDate" type="date" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
             </div>
         </div>
 
@@ -85,66 +197,75 @@ new class extends Component {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
-                            <td class="p-5">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600">NA</div>
-                                    <div>
-                                        <div class="text-sm font-bold dark:text-white">Nurse Amina</div>
-                                        <div class="text-[10px] text-slate-400 font-bold uppercase">ER Ward</div>
+                        @forelse($leaveRequests as $leave)
+                            @php
+                                $startDate = \Carbon\Carbon::parse($leave->start_date);
+                                $endDate = \Carbon\Carbon::parse($leave->end_date);
+                                $duration = $startDate->diffInDays($endDate) + 1;
+                                
+                                $statusColors = [
+                                    'pending' => 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400',
+                                    'approved' => 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
+                                    'rejected' => 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
+                                ];
+                                $statusClass = $statusColors[$leave->status] ?? $statusColors['pending'];
+                            @endphp
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
+                                <td class="p-5">
+                                    <div class="flex items-center gap-3">
+                                        <flux:avatar name="{{ $leave->employee->full_name }}" size="sm" color="auto" color:seed="{{ $leave->employee->id }}" />
+                                        <div>
+                                            <div class="text-sm font-bold dark:text-white capitalize">{{ $leave->employee->full_name }}</div>
+                                            <div class="text-[10px] text-slate-400 font-bold uppercase">{{ $leave->employee->department->name ?? 'N/A' }}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="p-5 text-sm font-medium dark:text-slate-300">Sick Leave</td>
-                            <td class="p-5">
-                                <div class="text-sm font-bold dark:text-white">3 Days</div>
-                                <div class="text-[10px] text-slate-400">Jan 12 - Jan 14</div>
-                            </td>
-                            <td class="p-5">
-                                <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">Recovering from seasonal flu. Medical certificate uploaded in vault.</p>
-                            </td>
-                            <td class="p-5 text-center">
-                                <span class="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-[10px] font-bold rounded-full uppercase">Pending</span>
-                            </td>
-                            <td class="p-5 text-right">
-                                <div class="flex justify-end gap-2">
-                                    <button class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                    </button>
-                                    <button class="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
-                            <td class="p-5">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold">DZ</div>
-                                    <div>
-                                        <div class="text-sm font-bold dark:text-white">Dr. Zubair</div>
-                                        <div class="text-[10px] text-slate-400 font-bold uppercase">OPD</div>
+                                </td>
+                                <td class="p-5 text-sm font-medium dark:text-slate-300">{{ $leave->leaveType->name ?? 'Leave' }}</td>
+                                <td class="p-5">
+                                    <div class="text-sm font-bold dark:text-white">{{ $duration }} {{ $duration > 1 ? 'Days' : 'Day' }}</div>
+                                    <div class="text-[10px] text-slate-400">{{ $startDate->format('M d') }} - {{ $endDate->format('M d') }}</div>
+                                </td>
+                                <td class="p-5">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{{ $leave->reason ?? 'No reason provided' }}</p>
+                                </td>
+                                <td class="p-5 text-center">
+                                    <span class="px-3 py-1 {{ $statusClass }} text-[10px] font-bold rounded-full uppercase">{{ $leave->status }}</span>
+                                </td>
+                                <td class="p-5 text-right">
+                                    @if($leave->status === 'pending')
+                                        <div class="flex justify-end gap-2">
+                                            <button wire:click="approveLeave({{ $leave->id }})" class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            </button>
+                                            <button wire:click="rejectLeave({{ $leave->id }})" class="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            </button>
+                                        </div>
+                                    @else
+                                        <div class="text-xs text-slate-400">
+                                            @if($leave->approver)
+                                                <p class="font-semibold">{{ ucfirst($leave->status) }} by</p>
+                                                <p>{{ $leave->approver->name }}</p>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="p-12 text-center">
+                                    <div class="flex flex-col items-center gap-3">
+                                        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-slate-500 dark:text-slate-400 font-semibold">No leave requests found</p>
+                                            <p class="text-slate-400 text-sm mt-1">Try adjusting your filters</p>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="p-5 text-sm font-medium dark:text-slate-300">Casual Leave</td>
-                            <td class="p-5">
-                                <div class="text-sm font-bold dark:text-white">1 Day</div>
-                                <div class="text-[10px] text-slate-400">Jan 10</div>
-                            </td>
-                            <td class="p-5">
-                                <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">Family emergency. Will be available on call if needed.</p>
-                            </td>
-                            <td class="p-5 text-center">
-                                <span class="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] font-bold rounded-full uppercase">Approved</span>
-                            </td>
-                            <td class="p-5 text-right">
-                                <button class="text-slate-400 hover:text-blue-600 font-bold text-xs px-3 py-1">Details</button>
-                            </td>
-                        </tr>
-
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

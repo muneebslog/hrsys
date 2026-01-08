@@ -20,6 +20,8 @@ return new class extends Migration
             $table->text('reason')->nullable();
             $table->string('attachment')->nullable();
             $table->string('status')->default('pending');
+            $table->string('handover_instructions')->nullable();
+            $table->foreignId('handover_to')->nullable()->constrained('employees')->nullOnDelete();
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('approval_comment')->nullable();
             $table->timestamps();

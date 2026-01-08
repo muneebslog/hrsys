@@ -14,6 +14,8 @@ class LeaveRequest extends Model
         'reason',
         'attachment',
         'status',
+        'handover_to',
+        'handover_instructions',
         'approved_by',
         'approval_comment',
     ];

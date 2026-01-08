@@ -10,6 +10,7 @@ class Complaint extends Model
         'employee_id',
         'category',
         'title',
+        'attachment_path',
         'description',
         'is_anonymous',
         'status',

@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->boolean('is_anonymous')->default(false);
-            $table->string('status')->default('new');
+            $table->enum('status', ['new', 'in_progress', 'resolved', 'closed'])->default('new');
+            $table->string('attachment_path')->nullable();
             $table->text('admin_remarks')->nullable();
             $table->timestamps();
         });

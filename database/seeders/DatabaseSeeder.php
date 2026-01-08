@@ -16,21 +16,21 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $adminRole = Role::firstOrCreate(
-        ['name' => 'Admin'],
+        ['name' => 'admin'],
         ['description' => 'System Administrator']
     );
     Role::firstOrCreate(
-        ['name' => 'Employee'],
+        ['name' => 'employee'],
         ['description' => "Hospital's Employee Role"]
     );
     
      Role::firstOrCreate(
-        ['name' => 'Doctor'],
+        ['name' => 'doctor'],
         ['description' => 'Doctor Role  ']
     );
 
     Role::firstOrCreate(
-        ['name' => 'Staff'],
+        ['name' => 'staff'],
         ['description' => 'Staff Role  ']
     );
     

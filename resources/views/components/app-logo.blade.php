@@ -5,7 +5,7 @@
 <div class="ms-1 grid flex-1 text-start text-sm">
     <span class="mb-0.5 truncate leading-tight font-semibold">Laravel Starter Kit</span>
 </div> --}}
-<div class="flex items-center px-6 border-b border-slate-100 dark:border-slate-800">
+<div class="flex items-center px-6 ">
     <div
         class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-blue-200 dark:shadow-none">
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -63,4 +63,12 @@ class User extends Authenticatable
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    /**
+     * Get the role that the user belongs to
+     */
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
 }

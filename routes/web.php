@@ -13,13 +13,34 @@ Route::view('dashboard', 'dashboard')
     ->name('dashboard');
 
 Route::middleware(['auth'])->group(function () {
-    
-    Volt::route('/document/vault', 'documentvault')->name('docs');
-    Volt::route('/feedback', 'feedbacklogs')->name('feedlogs');
-    Volt::route('/leaverequest', 'leaverequest')->name('leaverequests');
-    Volt::route('/staffdirectory', 'staffdirectory')->name('staffdirectory');
-    Volt::route('/profile/{emp}', 'employeeprofile')->name('emp.profile');
 
+    // Admin Only Routes
+    Route::middleware(['role:admin'])->group(function () {
+        Volt::route('/admindashboard', 'admindashboard')->name('admin.dashboard');
+        Volt::route('/staffdirectory', 'staffdirectory')->name('staffdirectory');
+        Volt::route('/leaverequest', 'leaverequest')->name('leaverequests');
+        Volt::route('/feedbacklogs', 'feedbacklogs')->name('feedlogs');
+        Volt::route('/departmentcrud', 'departmentcrud')->name('departmentcrud');
+        Volt::route('/leavetypecrud', 'leavetypecrud')->name('leavetypecrud');
+        Volt::route('/panel', 'panel')->name('panel');
+    });
+
+    // Employee Only Routes
+    Route::middleware(['role:employee'])->group(function () {
+        Volt::route('/empdashboard', 'empdashboard')->name('emp.dashboard');
+        Volt::route('/staffapplyleave', 'staffapplyleave')->name('staffapplyleave');
+        Volt::route('/staffcomplaintscell', 'staffcomplaintscell')->name('staffcomplaints');
+    });
+
+     Route::middleware(['role:doctor'])->group(function () {
+        Volt::route('/empdashboard', 'empdashboard')->name('emp.dashboard');
+        Volt::route('/staffapplyleave', 'staffapplyleave')->name('staffapplyleave');
+        Volt::route('/staffcomplaintscell', 'staffcomplaintscell')->name('staffcomplaints');
+    });
+    
+    // Shared Routes (Both Admin and Employee can access)
+    Volt::route('/employeeprofile/{emp}', 'employeeprofile')->name('emp.profile');
+    Volt::route('/document/vault', 'documentvault')->name('docs');
 
     Route::redirect('settings', 'settings/profile');
 

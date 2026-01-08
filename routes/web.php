@@ -22,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('/feedbacklogs', 'feedbacklogs')->name('feedlogs');
         Volt::route('/departmentcrud', 'departmentcrud')->name('departmentcrud');
         Volt::route('/leavetypecrud', 'leavetypecrud')->name('leavetypecrud');
+        Volt::route('/adminguide', 'adminguide')->name('admin.guide');
         Volt::route('/panel', 'panel')->name('panel');
     });
 
@@ -31,14 +32,15 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('/staffapplyleave', 'staffapplyleave')->name('staffapplyleave');
         Volt::route('/staffcomplaintscell', 'staffcomplaintscell')->name('staffcomplaints');
     });
-
-     Route::middleware(['role:doctor'])->group(function () {
+    
+    Route::middleware(['role:doctor'])->group(function () {
         Volt::route('/empdashboard', 'empdashboard')->name('emp.dashboard');
         Volt::route('/staffapplyleave', 'staffapplyleave')->name('staffapplyleave');
         Volt::route('/staffcomplaintscell', 'staffcomplaintscell')->name('staffcomplaints');
     });
     
     // Shared Routes (Both Admin and Employee can access)
+    Volt::route('/empguide', 'empguide')->name('emp.guide');
     Volt::route('/employeeprofile/{emp}', 'employeeprofile')->name('emp.profile');
     Volt::route('/document/vault', 'documentvault')->name('docs');
 

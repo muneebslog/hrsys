@@ -132,12 +132,16 @@ new class extends Component {
                 </a>
                 <h1 class="font-bold text-lg">Back to Directory</h1>
             </div>
+            @if (auth()->user()->role === 'admin')
+                
             <div class="flex items-center gap-3">
                     <button class="px-4 py-2 text-sm font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 transition">Deactivate Staff</button>
                     <flux:modal.trigger name="edit-profile">
                         <flux:button>Edit Profile</flux:button>
                     </flux:modal.trigger>
                 </div>
+            @endif
+
         </div>
     </nav>
 

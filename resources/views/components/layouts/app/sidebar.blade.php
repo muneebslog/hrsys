@@ -21,6 +21,7 @@
                     {{-- <flux:navlist.item class="m-3" icon="document-duplicate" :href="route('docs')" :current="request()->routeIs('docs')" wire:navigate>{{ __('Document Vault') }}</flux:navlist.item> --}}
                     <flux:navlist.item class="m-3" icon="chat-bubble-bottom-center-text" :href="route('feedlogs')" :current="request()->routeIs('feedlogs')" wire:navigate>{{ __('Feedback Logs') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="cog" :href="route('panel')" :current="request()->routeIs('panel')" wire:navigate>{{ __('Manage Basic Tables') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="book-open-text" :href="route('admin.guide')" :current="request()->routeIs('admin.guide')" wire:navigate>{{ __('Admin Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
              @else
@@ -30,6 +31,7 @@
                     <flux:navlist.item class="m-3" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="chat-bubble-bottom-center-text" :href="route('staffapplyleave')" :current="request()->routeIs('staffapplyleave')" wire:navigate>{{ __('Apply for Leave') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="clipboard-document-list" :href="route('staffcomplaints')" :current="request()->routeIs('staffcomplaints')" wire:navigate>{{ __('Staff Complaints') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="book-open-text" :href="route('emp.guide')" :current="request()->routeIs('emp.guide')" wire:navigate>{{ __('Employee Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
     @endif

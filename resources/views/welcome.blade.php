@@ -67,7 +67,7 @@
         </div>
     </nav>
 
-    <header class="pt-40 pb-20 px-6">
+    <header class="pt-20 pb-20 px-6">
         <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div>
                 <div

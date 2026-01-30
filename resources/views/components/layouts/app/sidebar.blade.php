@@ -10,7 +10,7 @@
             <a href="{{ route('dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
                 <x-app-logo />
             </a>
-    @if(auth()->user()->role->name === 'Admin')
+    @if(auth()->user()->role->name === 'admin')
 
    
             <flux:navlist variant="outline">
@@ -147,6 +147,9 @@
         </flux:header>
 
         {{ $slot }}
+
+        <!-- Toast Notification Component -->
+        <x-toast-notification />
 
         @fluxScripts
     </body>

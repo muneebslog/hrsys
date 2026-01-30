@@ -4,18 +4,35 @@ use Livewire\Volt\Component;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\Complaint;
+use Livewire\Volt\Attributes\Title;
 use App\Models\Department;
 use Carbon\Carbon;
 
-new class extends Component {
+new 
+#[Title('Admin Dashboard')]
+class extends Component {
     public $stats = [];
     public $recentLeaves = [];
     public $recentComplaints = [];
     public $leaveStats = [];
 
+    protected $listeners = ['newComplaintCreated', 'newLeaveRequestCreated'];
+
     public function mount()
     {
         $this->loadDashboardData();
+    }
+
+    public function newComplaintCreated()
+    {
+        $this->loadDashboardData();
+        $this->dispatch('notify', message: 'New complaint received!', type: 'info');
+    }
+
+    public function newLeaveRequestCreated()
+    {
+        $this->loadDashboardData();
+        $this->dispatch('notify', message: 'New leave request received!', type: 'info');
     }
 
     public function loadDashboardData()

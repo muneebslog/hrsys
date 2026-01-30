@@ -2,8 +2,11 @@
 
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
+use App\Notifications\ComplaintSubmittedSlackNotification;
+
 use App\Models\Complaint;
 use App\Models\Employee;
+use App\Events\ComplaintCreated;
 
 new class extends Component {
     use WithFileUploads;
@@ -46,7 +49,7 @@ new class extends Component {
         }
 
         // Create complaint
-        Complaint::create([
+        $complaint = Complaint::create([
             'employee_id' => $this->is_anonymous ? null : $employee->id,
             'category' => $this->category,
             'title' => $this->title,
@@ -55,6 +58,14 @@ new class extends Component {
             'attachment_path' => $attachmentPath,
             'status' => 'new',
         ]);
+        auth()->user()->notify(
+    new ComplaintSubmittedSlackNotification(
+        $complaint->load('employee')
+    )
+);
+
+        // Broadcast event to notify admins
+        broadcast(new ComplaintCreated($complaint->load('employee')));
 
         session()->flash('message', 'Your feedback has been submitted successfully! Management will review it shortly.');
 

@@ -16,9 +16,22 @@ new class extends Component {
     public $onLeaveToday = 0;
     public $availableStaff = 0;
 
+    protected $listeners = ['newLeaveRequestCreated', 'refreshData'];
+
     public function mount()
     {
         $this->filterDate = Carbon::today()->format('Y-m-d');
+        $this->loadData();
+    }
+
+    public function newLeaveRequestCreated()
+    {
+        $this->loadData();
+        $this->dispatch('notify', message: 'New leave request received!', type: 'info');
+    }
+
+    public function refreshData()
+    {
         $this->loadData();
     }
 

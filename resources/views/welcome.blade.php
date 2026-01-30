@@ -87,6 +87,7 @@
                     fast-paced environment of Mohsin Medical Complex.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4">
+                     <a href="{{ route('login') }}">
                     <button
                         class="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-2">
                         Explore Dashboard
@@ -95,6 +96,7 @@
                                 d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                         </svg>
                     </button>
+                    </a>
                     <button
                         class="bg-white border-2 border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-slate-50 transition">
                         View Schedules

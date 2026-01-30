@@ -13,7 +13,20 @@ new class extends Component {
     public $filterStatus = 'all';
     public $filterCategory = 'all';
 
+    protected $listeners = ['newComplaintCreated', 'refreshData'];
+
     public function mount()
+    {
+        $this->loadData();
+    }
+
+    public function newComplaintCreated()
+    {
+        $this->loadData();
+        $this->dispatch('notify', message: 'New complaint/feedback received!', type: 'info');
+    }
+
+    public function refreshData()
     {
         $this->loadData();
     }

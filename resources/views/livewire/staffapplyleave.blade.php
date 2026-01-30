@@ -1,10 +1,14 @@
 <?php
 
+use App\Notifications\LeaveAppliedSlackNotification;
+use Illuminate\Support\Facades\Notification;
+
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Employee;
+use App\Events\LeaveRequestCreated;
 
 new class extends Component {
     use WithFileUploads;
@@ -56,7 +60,7 @@ new class extends Component {
         }
 
         // Create leave request
-        LeaveRequest::create([
+        $leaveRequest = LeaveRequest::create([
             'employee_id' => $employee->id,
             'leave_type_id' => $this->leave_type_id,
             'start_date' => $this->start_date,
@@ -66,6 +70,18 @@ new class extends Component {
             'attachment' => $attachmentPath,
             'status' => 'pending',
         ]);
+        // Send Slack notification (Bot OAuth)
+// Find this block around line 74:
+Notification::route('slack', config('services.slack.notifications.channel')) // Changed from 'dummy'
+    ->notify(
+        new LeaveAppliedSlackNotification(
+            $leaveRequest->load('employee.department', 'leaveType')
+        )
+    );
+
+
+        // Broadcast event to notify admins
+        broadcast(new LeaveRequestCreated($leaveRequest->load('employee', 'leaveType')));
 
         session()->flash('message', 'Leave application submitted successfully! Your manager will review it shortly.');
 

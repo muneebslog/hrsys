@@ -302,7 +302,7 @@ new class extends Component {
                         <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <div class="flex justify-between text-xs font-semibold">
                                 <span class="text-slate-400 uppercase">Employee ID</span>
-                                <span class="dark:text-slate-300">{{ $employee->employee_code }}</span>
+                                <span class="dark:text-slate-300">{{ $employee->employee_code }}@mmc.com</span>
                             </div>
                             
                              <div class="flex justify-between text-xs font-semibold">

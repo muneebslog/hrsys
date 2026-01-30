@@ -82,10 +82,10 @@
                 <h1 class="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight mb-6">
                     Manage your medical heroes, <span class="text-blue-600">digitally.</span>
                 </h1>
-                <p class="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg">
+                {{-- <p class="text-lg text-slate-600 mb-10 leading-relaxed max-w-lg">
                     Stop losing paperwork and verbal requests. A unified HR system designed specifically for the
                     fast-paced environment of Mohsin Medical Complex.
-                </p>
+                </p> --}}
                 <div class="flex flex-col sm:flex-row gap-4">
                      <a href="{{ route('login') }}">
                     <button

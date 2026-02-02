@@ -85,12 +85,19 @@ new class extends Component {
                 $roleName = 'Staff';
             }
             
+            $roleName = strtolower($roleName);
+
             $role = Role::where('name', $roleName)->first();
-            
+
+            if (!$role) {
+                throw new \Exception("Role '{$roleName}' not found");
+            }
+
+
             $user = User::create([
                 'email' => $employeeEmail, 
                 'name' => $this->employeeName,
-                'password' => 'password',
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
                 'role_id' => $role->id,
                 'is_active' => true,
@@ -171,7 +178,7 @@ new class extends Component {
     
 }; ?>
  
-<div>
+<div class="-m-6 lg:-m-8">
 
     <div class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased min-h-screen">
 

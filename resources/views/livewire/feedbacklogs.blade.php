@@ -114,7 +114,7 @@ new class extends Component {
     }
 }; ?>
 
-<div>
+<div class="-m-6 lg:-m-8">
 
 
     <nav class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">

@@ -72,16 +72,16 @@ new class extends Component {
         ]);
         // Send Slack notification (Bot OAuth)
 // Find this block around line 74:
-Notification::route('slack', config('services.slack.notifications.channel')) // Changed from 'dummy'
-    ->notify(
-        new LeaveAppliedSlackNotification(
-            $leaveRequest->load('employee.department', 'leaveType')
-        )
-    );
+// Notification::route('slack', config('services.slack.notifications.channel')) // Changed from 'dummy'
+//     ->notify(
+//         new LeaveAppliedSlackNotification(
+//             $leaveRequest->load('employee.department', 'leaveType')
+//         )
+//     );
 
 
         // Broadcast event to notify admins
-        broadcast(new LeaveRequestCreated($leaveRequest->load('employee', 'leaveType')));
+        // broadcast(new LeaveRequestCreated($leaveRequest->load('employee', 'leaveType')));
 
         session()->flash('message', 'Leave application submitted successfully! Your manager will review it shortly.');
 
@@ -90,7 +90,7 @@ Notification::route('slack', config('services.slack.notifications.channel')) // 
     }
 }; ?>
 
-<div>
+<div class="-m-6 lg:-m-8">
     
     <nav class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
         <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">

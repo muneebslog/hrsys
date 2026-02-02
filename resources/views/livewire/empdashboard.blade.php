@@ -81,7 +81,7 @@ new class extends Component {
     }
 }; ?>
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-950">
+<div class="min-h-screen -m-6 lg:-m-8 bg-slate-50 dark:bg-slate-950">
     
     @if(!$employee)
         <div class="max-w-4xl mx-auto px-4 py-12 text-center">

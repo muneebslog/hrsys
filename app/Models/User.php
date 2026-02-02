@@ -60,7 +60,7 @@ class User extends Authenticatable
         return Str::of($this->name)
             ->explode(' ')
             ->take(2)
-            ->map(fn ($word) => Str::substr($word, 0, 1))
+            ->map(fn($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
 
@@ -70,5 +70,13 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+
+    public function employee()
+    {
+        // One User has One Employee profile
+        // user_id is the foreign key on the employees table 
+        return $this->hasOne(Employee::class, 'user_id', 'id');
     }
 }

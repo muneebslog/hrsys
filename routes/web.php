@@ -27,6 +27,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
    //Route::middleware(['auth', 'role:doctor,employee,staff'])->group(function () {
+    Volt::route('/stafftickets', 'stafftickets')->name('emp.tickets');
     Volt::route('/empdashboard', 'empdashboard')->name('emp.dashboard');
     Volt::route('/staffapplyleave', 'staffapplyleave')->name('staffapplyleave');
     Volt::route('/staffcomplaintscell', 'staffcomplaintscell')->name('staffcomplaints');

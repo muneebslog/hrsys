@@ -9,8 +9,11 @@ use Carbon\Carbon;
 new class extends Component {
     public $leaveRequests;
     public $filterStatus = 'all';
-    public $filterDate = '';
-    
+    public $startDate;
+    public $endDate;
+    public $activeStat = null; // for clickable stats
+
+
     // Statistics
     public $pendingCount = 0;
     public $onLeaveToday = 0;
@@ -20,9 +23,11 @@ new class extends Component {
 
     public function mount()
     {
-        $this->filterDate = Carbon::today()->format('Y-m-d');
+        $this->startDate = Carbon::now()->startOfWeek()->format('Y-m-d');
+        $this->endDate = Carbon::now()->endOfWeek()->format('Y-m-d');
         $this->loadData();
     }
+
 
     public function newLeaveRequestCreated()
     {
@@ -37,32 +42,51 @@ new class extends Component {
 
     public function loadData()
     {
-        // Load leave requests with relationships
-        $query = LeaveRequest::with(['employee.user', 'employee.department', 'leaveType', 'approver']);
+        $query = LeaveRequest::with([
+            'employee.user',
+            'employee.department',
+            'leaveType',
+            'approver'
+        ]);
 
-        // Apply status filter
+        // Status filter
         if ($this->filterStatus !== 'all') {
             $query->where('status', $this->filterStatus);
         }
 
-        // Apply date filter if set
-        if ($this->filterDate) {
-            $query->where(function($q) {
-                $q->whereDate('start_date', '<=', $this->filterDate)
-                  ->whereDate('end_date', '>=', $this->filterDate);
+        // Clickable stat filter (pending / on-leave)
+        if ($this->activeStat === 'pending') {
+            $query->where('status', 'pending');
+        }
+
+        if ($this->activeStat === 'on_leave') {
+            $query->where('status', 'approved');
+        }
+
+        // DATE RANGE FILTER (overlapping logic)
+        if ($this->startDate && $this->endDate) {
+            $query->where(function ($q) {
+                $q->whereBetween('start_date', [$this->startDate, $this->endDate])
+                    ->orWhereBetween('end_date', [$this->startDate, $this->endDate])
+                    ->orWhere(function ($q2) {
+                        $q2->where('start_date', '<=', $this->startDate)
+                            ->where('end_date', '>=', $this->endDate);
+                    });
             });
         }
 
-        $this->leaveRequests = $query->orderBy('created_at', 'desc')->get();
+        $this->leaveRequests = $query
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        // Calculate statistics
         $this->calculateStatistics();
     }
+
 
     public function calculateStatistics()
     {
         $this->pendingCount = LeaveRequest::where('status', 'pending')->count();
-        
+
         // Count employees on leave today
         $today = Carbon::today();
         $this->onLeaveToday = LeaveRequest::where('status', 'approved')
@@ -70,7 +94,7 @@ new class extends Component {
             ->whereDate('end_date', '>=', $today)
             ->distinct('employee_id')
             ->count('employee_id');
-        
+
         // Calculate available staff (total employees - on leave today)
         $totalEmployees = Employee::count();
         $this->availableStaff = $totalEmployees - $this->onLeaveToday;
@@ -82,16 +106,43 @@ new class extends Component {
         $this->loadData();
     }
 
-    public function updatedFilterDate()
+    public function updatedStartDate()
     {
         $this->loadData();
     }
+    public function updatedEndDate()
+    {
+        $this->loadData();
+    }
+
+    public function filterByStat($type)
+    {
+        $this->activeStat = $type;
+
+        if ($type === 'pending') {
+            $this->filterStatus = 'pending';
+        }
+
+        if ($type === 'on_leave') {
+            $this->filterStatus = 'approved';
+        }
+
+        $this->loadData();
+    }
+
+    public function clearStatFilter()
+    {
+        $this->activeStat = null;
+        $this->filterStatus = 'all';
+        $this->loadData();
+    }
+
 
     public function approveLeave($leaveId)
     {
         try {
             $leave = LeaveRequest::findOrFail($leaveId);
-            
+
             $leave->update([
                 'status' => 'approved',
                 'approved_by' => auth()->id(),
@@ -99,7 +150,7 @@ new class extends Component {
 
             session()->flash('message', 'Leave request approved successfully.');
             $this->loadData();
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to approve leave: ' . $e->getMessage());
         }
@@ -109,7 +160,7 @@ new class extends Component {
     {
         try {
             $leave = LeaveRequest::findOrFail($leaveId);
-            
+
             $leave->update([
                 'status' => 'rejected',
                 'approved_by' => auth()->id(),
@@ -117,7 +168,7 @@ new class extends Component {
 
             session()->flash('message', 'Leave request rejected.');
             $this->loadData();
-            
+
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to reject leave: ' . $e->getMessage());
         }
@@ -128,54 +179,79 @@ new class extends Component {
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
         $days = $start->diffInDays($end) + 1;
-        
+
         return $days . ' ' . ($days > 1 ? 'Days' : 'Day');
     }
 }; ?>
 
-<div>
-   
+<div class="-m-6 lg:-m-8">
+
 
     <nav class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20">
                 <div class="flex items-center gap-3">
-                   
+
                     <div>
                         <span class="text-xl font-bold tracking-tight block">Leave Management</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
-                    
+
                 </div>
             </div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm">
-                <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+
+            <div wire:click="filterByStat('pending')"
+                class="cursor-pointer bg-white dark:bg-slate-900 p-6 rounded-2xl border flex items-center gap-5 shadow-sm  {{ $activeStat === 'pending' ? 'ring-2 ring-amber-500' : '' }}">
+
+                <div
+                    class="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Review</p>
-                    <p class="text-2xl font-black dark:text-white">{{ str_pad($pendingCount, 2, '0', STR_PAD_LEFT) }} Requests</p>
+                    <p class="text-2xl font-black dark:text-white">
+                        {{ str_pad($pendingCount, 2, '0', STR_PAD_LEFT) }}
+                        Requests
+                    </p>
                 </div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm border-l-4 border-l-blue-600">
-                <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+
+            <div wire:click="filterByStat('on_leave')"
+                class="cursor-pointer bg-white dark:bg-slate-900 p-6 rounded-2xl border
+     {{ $activeStat === 'on_leave' ? 'ring-2 ring-blue-500' : '' }} border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm border-l-4 border-l-blue-600">
+
+
+                <div
+                    class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                        </path>
+                    </svg>
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">On Leave Today</p>
                     <p class="text-2xl font-black dark:text-white">{{ $onLeaveToday }} Staff</p>
                 </div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm">
-                <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div
+                class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-5 shadow-sm">
+                <div
+                    class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
                 </div>
                 <div>
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Staff</p>
@@ -186,27 +262,50 @@ new class extends Component {
 
         <div class="flex flex-col md:flex-row gap-4 mb-6">
             <div class="flex-1 flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                <button wire:click="setFilter('all')" class="px-5 py-2 {{ $filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">All Requests</button>
-                <button wire:click="setFilter('pending')" class="px-5 py-2 {{ $filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Pending</button>
-                <button wire:click="setFilter('approved')" class="px-5 py-2 {{ $filterStatus === 'approved' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Approved</button>
-                <button wire:click="setFilter('rejected')" class="px-5 py-2 {{ $filterStatus === 'rejected' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Rejected</button>
+                <button wire:click="setFilter('all')"
+                    class="px-5 py-2 {{ $filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">All
+                    Requests</button>
+                <button wire:click="setFilter('pending')"
+                    class="px-5 py-2 {{ $filterStatus === 'pending' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Pending</button>
+                <button wire:click="setFilter('approved')"
+                    class="px-5 py-2 {{ $filterStatus === 'approved' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Approved</button>
+                <button wire:click="setFilter('rejected')"
+                    class="px-5 py-2 {{ $filterStatus === 'rejected' ? 'bg-blue-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800' }} rounded-lg text-sm font-bold whitespace-nowrap transition">Rejected</button>
             </div>
             <div class="flex gap-2">
-                <input wire:model.live="filterDate" type="date" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                <input wire:model.live="startDate" type="date"
+                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm">
+
+                <input wire:model.live="endDate" type="date"
+                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2 text-sm">
             </div>
+
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div
+            class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-800/50">
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Staff Member</th>
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</th>
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Duration</th>
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason/Note</th>
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Status</th>
-                            <th class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                Staff Member</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                Leave Type</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                Duration</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                Reason/Note</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">
+                                Status</th>
+                            <th
+                                class="p-5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -215,7 +314,7 @@ new class extends Component {
                                 $startDate = \Carbon\Carbon::parse($leave->start_date);
                                 $endDate = \Carbon\Carbon::parse($leave->end_date);
                                 $duration = $startDate->diffInDays($endDate) + 1;
-                                
+
                                 $statusColors = [
                                     'pending' => 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400',
                                     'approved' => 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
@@ -226,32 +325,83 @@ new class extends Component {
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
                                 <td class="p-5">
                                     <div class="flex items-center gap-3">
-                                        <flux:avatar name="{{ $leave->employee->full_name }}" size="sm" color="auto" color:seed="{{ $leave->employee->id }}" />
+                                        <flux:avatar name="{{ $leave->employee->full_name }}" size="sm" color="auto"
+                                            color:seed="{{ $leave->employee->id }}" />
                                         <div>
-                                            <div class="text-sm font-bold dark:text-white capitalize">{{ $leave->employee->full_name }}</div>
-                                            <div class="text-[10px] text-slate-400 font-bold uppercase">{{ $leave->employee->department->name ?? 'N/A' }}</div>
+                                            <div class="text-sm font-bold dark:text-white capitalize">
+                                                {{ $leave->employee->full_name }}
+                                            </div>
+                                            <div class="text-[10px] text-slate-400 font-bold uppercase">
+                                                {{ $leave->employee->department->name ?? 'N/A' }}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="p-5 text-sm font-medium dark:text-slate-300">{{ $leave->leaveType->name ?? 'Leave' }}</td>
-                                <td class="p-5">
-                                    <div class="text-sm font-bold dark:text-white">{{ $duration }} {{ $duration > 1 ? 'Days' : 'Day' }}</div>
-                                    <div class="text-[10px] text-slate-400">{{ $startDate->format('M d') }} - {{ $endDate->format('M d') }}</div>
+                                <td class="p-5 text-sm font-medium dark:text-slate-300">
+                                    {{ $leave->leaveType->name ?? 'Leave' }}
                                 </td>
                                 <td class="p-5">
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{{ $leave->reason ?? 'No reason provided' }}</p>
+                                    <div class="text-sm font-bold dark:text-white">{{ $duration }}
+                                        {{ $duration > 1 ? 'Days' : 'Day' }}
+                                    </div>
+                                    <div class="text-[10px] text-slate-400">{{ $startDate->format('M d') }} -
+                                        {{ $endDate->format('M d') }}
+                                    </div>
+                                </td>
+                                <td class="p-5">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                                        {{ $leave->reason ?? 'No reason provided' }}
+                                    </p>
                                 </td>
                                 <td class="p-5 text-center">
-                                    <span class="px-3 py-1 {{ $statusClass }} text-[10px] font-bold rounded-full uppercase">{{ $leave->status }}</span>
+                                    <span
+                                        class="px-3 py-1 {{ $statusClass }} text-[10px] font-bold rounded-full uppercase">{{ $leave->status }}</span>
                                 </td>
                                 <td class="p-5 text-right">
+                                    <div class="mt-4">
+                                        @if($leave->attachment)
+                                            <div
+                                                class="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="Collection of file icon paths..." />
+                                                    </svg>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">
+                                                        Supporting Document Attached
+                                                    </p>
+                                                    <div class="mt-1">
+                                                        <a href="{{ asset('storage/' . $leave->attachment) }}" target="_blank"
+                                                            class="text-xs font-bold uppercase text-blue-700 dark:text-blue-400 hover:underline">
+                                                            View Attachment
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <p class="text-sm text-gray-500 dark:text-gray-400 italic">
+                                                No attachment provided for this request.
+                                            </p>
+                                        @endif
+                                    </div>
                                     @if($leave->status === 'pending')
                                         <div class="flex justify-end gap-2">
-                                            <button wire:click="approveLeave({{ $leave->id }})" class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            <button wire:click="approveLeave({{ $leave->id }})"
+                                                class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M5 13l4 4L19 7"></path>
+                                                </svg>
                                             </button>
-                                            <button wire:click="rejectLeave({{ $leave->id }})" class="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            <button wire:click="rejectLeave({{ $leave->id }})"
+                                                class="p-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition shadow-sm">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
                                             </button>
                                         </div>
                                     @else
@@ -268,11 +418,19 @@ new class extends Component {
                             <tr>
                                 <td colspan="6" class="p-12 text-center">
                                     <div class="flex flex-col items-center gap-3">
-                                        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        <div
+                                            class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                </path>
+                                            </svg>
                                         </div>
                                         <div>
-                                            <p class="text-slate-500 dark:text-slate-400 font-semibold">No leave requests found</p>
+                                            <p class="text-slate-500 dark:text-slate-400 font-semibold">No leave
+                                                requests
+                                                found</p>
                                             <p class="text-slate-400 text-sm mt-1">Try adjusting your filters</p>
                                         </div>
                                     </div>
@@ -284,13 +442,20 @@ new class extends Component {
             </div>
         </div>
 
-        <div class="mt-8 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 flex items-start gap-4">
+        <div
+            class="mt-8 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 flex items-start gap-4">
             <div class="text-blue-600 mt-1">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clip-rule="evenodd"></path>
+                </svg>
             </div>
             <div>
                 <h4 class="text-sm font-bold text-blue-900 dark:text-blue-400">Hospital Staffing Rule</h4>
-                <p class="text-sm text-blue-700 dark:text-blue-500/80 leading-relaxed">No more than 20% of staff per department can be on leave simultaneously. Approving Dr. Zubair's request will bring OPD to 15% leave status.</p>
+                <p class="text-sm text-blue-700 dark:text-blue-500/80 leading-relaxed">No more than 20% of staff per
+                    department can be on leave simultaneously. Approving Dr. Zubair's request will bring OPD to 15%
+                    leave status.</p>
             </div>
         </div>
 

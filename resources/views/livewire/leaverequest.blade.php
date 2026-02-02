@@ -349,7 +349,7 @@ new class extends Component {
                                     </div>
                                 </td>
                                 <td class="p-5">
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                                    <p class="text-xs  text-slate-500 dark:text-slate-400  max-w-[200px] ">
                                         {{ $leave->reason ?? 'No reason provided' }}
                                     </p>
                                 </td>
@@ -361,18 +361,10 @@ new class extends Component {
                                     <div class="mt-4">
                                         @if($leave->attachment)
                                             <div
-                                                class="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                                <div class="flex-shrink-0">
-                                                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="Collection of file icon paths..." />
-                                                    </svg>
-                                                </div>
+                                                class="flex items-center p-0 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                               
                                                 <div class="ml-3">
-                                                    <p class="text-sm font-medium text-blue-800 dark:text-blue-300">
-                                                        Supporting Document Attached
-                                                    </p>
+                                                    
                                                     <div class="mt-1">
                                                         <a href="{{ asset('storage/' . $leave->attachment) }}" target="_blank"
                                                             class="text-xs font-bold uppercase text-blue-700 dark:text-blue-400 hover:underline">

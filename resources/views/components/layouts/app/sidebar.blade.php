@@ -23,6 +23,7 @@
                     <flux:navlist.item class="m-3" icon="cog" :href="route('panel')" :current="request()->routeIs('panel')" wire:navigate>{{ __('Manage Basic Tables') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="map-pin" :href="route('rounds.sections')" :current="request()->routeIs('rounds.sections')" wire:navigate>{{ __('Round Sections') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="clipboard-document-check" :href="route('rounds.conduct')" :current="request()->routeIs('rounds.conduct')" wire:navigate>{{ __('Conduct Round') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="document-chart-bar" :href="route('rounds.report')" :current="request()->routeIs('rounds.report') || request()->routeIs('rounds.show')" wire:navigate>{{ __('Round Reports') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="book-open-text" :href="route('admin.guide')" :current="request()->routeIs('admin.guide')" wire:navigate>{{ __('Admin Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>

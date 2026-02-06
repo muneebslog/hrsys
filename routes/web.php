@@ -27,7 +27,10 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('/round-sections', 'roundsectionscrud')->name('rounds.sections');
         Volt::route('/rounds', 'roundsreport')->name('rounds.report');
         Volt::route('/rounds/{round}', 'rounddetail')->name('rounds.show');
+        Volt::route('/duty-roster', 'dutyroster')->name('roster.index');
     });
+
+    Volt::route('/my-roster', 'myroster')->name('roster.my');
 
     // Admin and Supervisor: Conduct round wizard
     Route::middleware(['role:admin,supervisor'])->group(function () {

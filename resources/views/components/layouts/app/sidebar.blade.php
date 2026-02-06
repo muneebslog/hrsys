@@ -24,6 +24,8 @@
                     <flux:navlist.item class="m-3" icon="map-pin" :href="route('rounds.sections')" :current="request()->routeIs('rounds.sections')" wire:navigate>{{ __('Round Sections') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="clipboard-document-check" :href="route('rounds.conduct')" :current="request()->routeIs('rounds.conduct')" wire:navigate>{{ __('Conduct Round') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="document-chart-bar" :href="route('rounds.report')" :current="request()->routeIs('rounds.report') || request()->routeIs('rounds.show')" wire:navigate>{{ __('Round Reports') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="calendar-days" :href="route('roster.index')" :current="request()->routeIs('roster.index')" wire:navigate>{{ __('Duty Roster') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="clipboard-document" :href="route('roster.my')" :current="request()->routeIs('roster.my')" wire:navigate>{{ __('My Roster') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="book-open-text" :href="route('admin.guide')" :current="request()->routeIs('admin.guide')" wire:navigate>{{ __('Admin Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
@@ -32,6 +34,7 @@
                 <flux:navlist.group :heading="__('Supervisor')" class="grid">
                     <flux:navlist.item class="m-3" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="clipboard-document-check" :href="route('rounds.conduct')" :current="request()->routeIs('rounds.conduct')" wire:navigate>{{ __('Conduct Round') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="clipboard-document" :href="route('roster.my')" :current="request()->routeIs('roster.my')" wire:navigate>{{ __('My Roster') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="book-open-text" :href="route('emp.guide')" :current="request()->routeIs('emp.guide')" wire:navigate>{{ __('Employee Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
@@ -42,6 +45,7 @@
                     <flux:navlist.item class="m-3" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="chat-bubble-bottom-center-text" :href="route('staffapplyleave')" :current="request()->routeIs('staffapplyleave')" wire:navigate>{{ __('Apply for Leave') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="clipboard-document-list" :href="route('staffcomplaints')" :current="request()->routeIs('staffcomplaints')" wire:navigate>{{ __('Staff Complaints') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="clipboard-document" :href="route('roster.my')" :current="request()->routeIs('roster.my')" wire:navigate>{{ __('My Roster') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="book-open-text" :href="route('emp.guide')" :current="request()->routeIs('emp.guide')" wire:navigate>{{ __('Employee Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>

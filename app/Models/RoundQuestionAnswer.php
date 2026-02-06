@@ -10,6 +10,7 @@ class RoundQuestionAnswer extends Model
         'round_section_response_id',
         'round_question_id',
         'value',
+        'attachment',
     ];
 
     public function sectionResponse()

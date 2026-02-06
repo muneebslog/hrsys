@@ -7,7 +7,12 @@ use App\Models\RoundSectionResponse;
 use App\Models\RoundQuestionAnswer;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Computed;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Storage;
+
 new class extends Component {
+    use WithFileUploads;
+
     #[Title('Conduct Round')]
 
     public $roundId = null;
@@ -15,6 +20,7 @@ new class extends Component {
     public $sections = [];
     public $currentSectionNotes = '';
     public $answers = []; // question_id => value
+    public $answerAttachments = []; // question_id => UploadedFile (temporary)
 
     public function mount()
     {
@@ -89,6 +95,15 @@ new class extends Component {
                 $this->answers[$q->id] = $q->type === 'yes_no' ? '' : '';
             }
         }
+
+        $this->answerAttachments = [];
+    }
+
+    public function updatedAnswerAttachments($value, $key)
+    {
+        $this->validate([
+            'answerAttachments.' . $key => 'nullable|image|max:5120',
+        ]);
     }
 
         public function handleSubmit()
@@ -119,18 +134,32 @@ new class extends Component {
             ]
         );
 
+        $existingByQuestion = $response->questionAnswers->keyBy('round_question_id');
+
         $response->questionAnswers()->delete();
 
         foreach ($section->questions as $question) {
             $value = $this->answers[$question->id] ?? null;
-            if ($value !== null && $value !== '') {
+            $attachmentPath = null;
+
+            $uploaded = $this->answerAttachments[$question->id] ?? null;
+            if ($uploaded) {
+                $attachmentPath = $uploaded->store('round-attachments', 'public');
+            } elseif ($existingByQuestion->has($question->id) && $existingByQuestion->get($question->id)->attachment) {
+                $attachmentPath = $existingByQuestion->get($question->id)->attachment;
+            }
+
+            if ($value !== null && $value !== '' || $attachmentPath) {
                 RoundQuestionAnswer::create([
                     'round_section_response_id' => $response->id,
                     'round_question_id' => $question->id,
-                    'value' => (string) $value,
+                    'value' => $value !== null && $value !== '' ? (string) $value : null,
+                    'attachment' => $attachmentPath,
                 ]);
             }
         }
+
+        $this->answerAttachments = [];
     }
 
     public function validateCurrentStep()
@@ -277,6 +306,14 @@ new class extends Component {
                                 :required="$question->is_required"
                             />
                         @endif
+                        <div class="mt-2">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Optional image</label>
+                            <input type="file" wire:model="answerAttachments.{{ $question->id }}" accept="image/*" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-900/30 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50">
+                            @if(isset($answerAttachments[$question->id]) && $answerAttachments[$question->id])
+                                <p class="mt-1 text-xs text-green-600 dark:text-green-400">New image selected</p>
+                            @endif
+                            <wire:loading wire:target="answerAttachments.{{ $question->id }}" class="mt-1 text-xs text-slate-400">Uploading...</wire:loading>
+                        </div>
                     </div>
                     @endforeach
                     

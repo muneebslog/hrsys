@@ -59,17 +59,27 @@ new class extends Component {
                     </div>
                     <div class="p-6 space-y-4">
                         @foreach($response->questionAnswers as $answer)
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                                <dt class="text-sm font-semibold text-slate-700 dark:text-slate-300 sm:w-2/5">{{ $answer->question->label }}</dt>
-                                <dd class="text-sm text-slate-600 dark:text-slate-400 sm:w-3/5">
-                                    @if($answer->question->type === 'yes_no')
-                                        <span class="px-2 py-0.5 rounded text-xs font-bold {{ $answer->value === 'yes' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' }}">
-                                            {{ ucfirst($answer->value ?? '—') }}
-                                        </span>
-                                    @else
-                                        {{ $answer->value ?? '—' }}
-                                    @endif
-                                </dd>
+                            <div class="flex flex-col gap-2 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <dt class="text-sm font-semibold text-slate-700 dark:text-slate-300 sm:w-2/5">{{ $answer->question->label }}</dt>
+                                    <dd class="text-sm text-slate-600 dark:text-slate-400 sm:w-3/5">
+                                        @if($answer->question->type === 'yes_no')
+                                            <span class="px-2 py-0.5 rounded text-xs font-bold {{ $answer->value === 'yes' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' }}">
+                                                {{ ucfirst($answer->value ?? '—') }}
+                                            </span>
+                                        @else
+                                            {{ $answer->value ?? '—' }}
+                                        @endif
+                                    </dd>
+                                </div>
+                                @if($answer->attachment)
+                                    <div class="sm:ml-0 sm:pl-0 sm:w-3/5">
+                                        <a href="{{ asset('storage/' . $answer->attachment) }}" target="_blank" rel="noopener" class="inline-block">
+                                            <img src="{{ asset('storage/' . $answer->attachment) }}" alt="Attachment" class="max-w-xs rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:opacity-90 transition object-cover max-h-48">
+                                        </a>
+                                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400"><a href="{{ asset('storage/' . $answer->attachment) }}" target="_blank" rel="noopener" class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Open full size</a></p>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                         @if($response->notes)

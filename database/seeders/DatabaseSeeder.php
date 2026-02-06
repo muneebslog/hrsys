@@ -33,7 +33,11 @@ class DatabaseSeeder extends Seeder
         ['name' => 'staff'],
         ['description' => 'Staff Role  ']
     );
-    
+
+    Role::firstOrCreate(
+        ['name' => 'supervisor'],
+        ['description' => 'Ward round supervisor']
+    );
 
     User::firstOrCreate(
         ['email' => 'admin@mmc.com'],

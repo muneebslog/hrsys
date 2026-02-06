@@ -24,7 +24,9 @@ class CheckRole
 
     $userRole = auth()->user()->role?->name;
 
-    if (! $userRole || ! in_array($userRole, $roles)) {
+    $allowed = collect($roles)->flatMap(fn ($r) => array_map('trim', explode(',', $r)))->all();
+
+    if (! $userRole || ! in_array($userRole, $allowed)) {
         abort(403, 'Unauthorized access.');
     }
 

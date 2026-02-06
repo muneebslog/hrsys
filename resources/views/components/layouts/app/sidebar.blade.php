@@ -21,7 +21,17 @@
                     {{-- <flux:navlist.item class="m-3" icon="document-duplicate" :href="route('docs')" :current="request()->routeIs('docs')" wire:navigate>{{ __('Document Vault') }}</flux:navlist.item> --}}
                     <flux:navlist.item class="m-3" icon="chat-bubble-bottom-center-text" :href="route('feedlogs')" :current="request()->routeIs('feedlogs')" wire:navigate>{{ __('Feedback Logs') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="cog" :href="route('panel')" :current="request()->routeIs('panel')" wire:navigate>{{ __('Manage Basic Tables') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="map-pin" :href="route('rounds.sections')" :current="request()->routeIs('rounds.sections')" wire:navigate>{{ __('Round Sections') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="clipboard-document-check" :href="route('rounds.conduct')" :current="request()->routeIs('rounds.conduct')" wire:navigate>{{ __('Conduct Round') }}</flux:navlist.item>
                     <flux:navlist.item class="m-3" icon="book-open-text" :href="route('admin.guide')" :current="request()->routeIs('admin.guide')" wire:navigate>{{ __('Admin Guide') }}</flux:navlist.item>
+                </flux:navlist.group>
+            </flux:navlist>
+             @elseif((auth()->user()->role->name ?? '') === 'supervisor')
+            <flux:navlist variant="outline">
+                <flux:navlist.group :heading="__('Supervisor')" class="grid">
+                    <flux:navlist.item class="m-3" icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="clipboard-document-check" :href="route('rounds.conduct')" :current="request()->routeIs('rounds.conduct')" wire:navigate>{{ __('Conduct Round') }}</flux:navlist.item>
+                    <flux:navlist.item class="m-3" icon="book-open-text" :href="route('emp.guide')" :current="request()->routeIs('emp.guide')" wire:navigate>{{ __('Employee Guide') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
              @else

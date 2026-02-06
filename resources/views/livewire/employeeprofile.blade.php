@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\Role;
 use Flux\Flux;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Storage;
@@ -24,10 +25,11 @@ new class extends Component {
     public $joining_date;
     public $department_id;
     public $manager_id;
+    public $role_id;
 
     public function mount($emp)
     {
-        $this->employee = Employee::with(['user', 'department', 'manager', 'documents', 'leaves.leaveType', 'leaves.approver'])
+        $this->employee = Employee::with(['user.role', 'department', 'manager', 'documents', 'leaves.leaveType', 'leaves.approver'])
             ->findOrFail($emp);
         
         // Populate editable fields
@@ -43,6 +45,7 @@ new class extends Component {
         $this->joining_date = $this->employee->joining_date;
         $this->department_id = $this->employee->department_id;
         $this->manager_id = $this->employee->manager_id;
+        $this->role_id = $this->employee->user->role_id;
     }
 
     public function setTab($tab)
@@ -65,9 +68,22 @@ new class extends Component {
             'joining_date' => 'nullable|date',
             'department_id' => 'required|exists:departments,id',
             'manager_id' => 'nullable|exists:employees,id',
+            'role_id' => 'required|exists:roles,id',
         ]);
 
         try {
+            // Prevent demoting the last admin
+            $user = $this->employee->user;
+            $isCurrentlyAdmin = $user->role && $user->role->name === 'admin';
+            $newRole = Role::find($this->role_id);
+            if ($isCurrentlyAdmin && $newRole && $newRole->name !== 'admin') {
+                $adminCount = \App\Models\User::where('role_id', $user->role_id)->count();
+                if ($adminCount <= 1) {
+                    session()->flash('error', 'Cannot change role: at least one admin must remain.');
+                    return;
+                }
+            }
+
             $this->employee->update([
                 'full_name' => $this->full_name,
                 'father_name' => $this->father_name,
@@ -83,14 +99,15 @@ new class extends Component {
                 'manager_id' => $this->manager_id,
             ]);
 
-            // Update user name as well
+            // Update user name and role
             $this->employee->user->update([
                 'name' => $this->full_name,
+                'role_id' => $this->role_id,
             ]);
 
             // Refresh employee data
             $this->employee->refresh();
-            $this->employee->load(['user', 'department', 'manager', 'documents', 'leaves.leaveType', 'leaves.approver']);
+            $this->employee->load(['user.role', 'department', 'manager', 'documents', 'leaves.leaveType', 'leaves.approver']);
 
             Flux::modal('edit-profile')->close();
             session()->flash('message', 'Employee profile updated successfully.');
@@ -169,6 +186,11 @@ new class extends Component {
                             <flux:select.option value="{{ $emp->id }}">{{ $emp->full_name }} ({{ $emp->employee_code }})</flux:select.option>
                         @endforeach
                     </flux:select>
+                    <flux:select wire:model="role_id" label="Role" placeholder="Select role" required>
+                        @foreach(Role::orderBy('name')->get() as $role)
+                            <flux:select.option value="{{ $role->id }}">{{ ucfirst($role->name) }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
                     <flux:input wire:model="qualification" label="Qualification" placeholder="e.g., MBBS, FCPS" />
                     <flux:input wire:model="joining_date" type="date" label="Joining Date" />
                 </div>
@@ -225,6 +247,9 @@ new class extends Component {
                             $statusClass = $statusColors[$employee->employment_status] ?? $statusColors['active'];
                         @endphp
                         <span class="w-max mx-auto md:mx-0 px-3 py-1 {{ $statusClass }} text-[10px] font-bold rounded-full uppercase">{{ $employee->employment_status }}</span>
+                        @if($employee->user && $employee->user->role)
+                            <span class="w-max mx-auto md:mx-0 px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase">{{ ucfirst($employee->user->role->name) }}</span>
+                        @endif
                     </div>
                     <p class="text-slate-500 dark:text-slate-400 font-medium">{{ $employee->designation ?? 'No Designation' }} • {{ $employee->department->name ?? 'No Department' }}</p>
                 </div>

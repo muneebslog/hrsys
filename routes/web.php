@@ -24,6 +24,12 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('/leavetypecrud', 'leavetypecrud')->name('leavetypecrud');
         Volt::route('/adminguide', 'adminguide')->name('admin.guide');
         Volt::route('/panel', 'panel')->name('panel');
+        Volt::route('/round-sections', 'roundsectionscrud')->name('rounds.sections');
+    });
+
+    // Admin and Supervisor: Conduct round wizard
+    Route::middleware(['role:admin,supervisor'])->group(function () {
+        Volt::route('/conduct-round', 'conductround')->name('rounds.conduct');
     });
 
    //Route::middleware(['auth', 'role:doctor,employee,staff'])->group(function () {
